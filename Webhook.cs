@@ -32,6 +32,7 @@ namespace OvationCXMFilter.Plugins
                         if (Constant.entities.Contains(entity.LogicalName))
                         {
                             trace.Trace(TraceMessage.validationStart);
+                            trace.Trace(TraceMessage.validationStart);
                             // Check the conditions before triggering the webhook.
                             if (context.UserId != null && CheckConditions(context, requestName))
                             {
