@@ -12,6 +12,7 @@ using System.Web;
 
 namespace OvationCXMFilter.Plugins
 {
+
     public class WebhookCopy : IPlugin
     {
         public void Execute(IServiceProvider serviceProvider)

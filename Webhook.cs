@@ -1,6 +1,5 @@
 ﻿using Microsoft.Xrm.Sdk;
 using Newtonsoft.Json;
-using OvationCXMFilter.Constants;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +8,34 @@ using System.ServiceModel;
 
 namespace OvationCXMFilter.Plugins
 {
+    public enum RequestName
+    {
+        create,
+        update
+    }
+
+    public enum EntityName
+    {
+        account,
+        contact
+    }
+
+    public static class Constant
+    {
+        public static string[] entities = { "account", "contact" };
+        public static string webhookUrl = "https://webhook.site/4cafb5e7-e915-47f5-a01c-bcdf40962640";
+        public static string filterUrl = "https://connector-msdynamics-api-pwgavvro5q-uc.a.run.app/api/filter?orgId=PPK1";
+    }
+
+    public static class TraceMessage
+    {
+        public static string validationStart = "Validating filter conditions...";
+        public static string validPayload = "Payload validated and triggering webhook...";
+        public static string webhookTriggered = "Webhook triggered !!!";
+        public static string pluginFaultException = "An error occurred in OvationCXM Plugin.";
+        public static string pluginError = "OvationCXM Plugin Exception: {0}";
+    }
+
     public class Webhook : IPlugin
     {
         public void Execute(IServiceProvider serviceProvider)
@@ -16,6 +43,7 @@ namespace OvationCXMFilter.Plugins
             ITracingService trace = (ITracingService)serviceProvider.GetService(typeof(ITracingService));
             // Obtain the execution context from the service provider.
             IPluginExecutionContext context = (IPluginExecutionContext)serviceProvider.GetService(typeof(IPluginExecutionContext));
+            
 
             // Check if the plugin is executing in the post-operation stage of the "Create" or "Update" message.
             string requestName = context.MessageName.ToLower();
@@ -134,19 +162,30 @@ namespace OvationCXMFilter.Plugins
             }
         }
 
-        private Dictionary<string, object> PayloadTransform(dynamic model)
+        private Dictionary<string, object> PayloadTransform(IPluginExecutionContext model)
         {
 
             var payload = new Dictionary<string, object>();
-            foreach (var element in model.InputParameters[0].value.Attributes)
-            {
-                element.value = element.value != null ? element.value : "";
-                payload[element.key] = element.value is object
-                    ? element.value.Id != null
-                        ? element.value.Id
-                        : element.value.Value
-                    : element.value;
-            }
+            var data = model.InputParameters.Values;
+           
+                foreach(Entity item in data)
+                {
+                    foreach(var element in item.Attributes.Values.Select((value, i) => new { i, value }))
+                    {
+                        var actualValue = element.i != null ? element.value : "";
+                        payload[item.Attributes.Keys.ElementAt(element.i)] = element.value is object ? element.value : "";
+                    }
+                   
+                    //element.value = element[item] != null ? element.value : "";
+                    //payload[element.key] = element.value is object
+                    //    ? element.value.id != null
+                    //        ? element.value.id
+                    //        : element.value.value
+                    //    : element.value;
+                
+
+                }
+            
             return payload;
         }
 
