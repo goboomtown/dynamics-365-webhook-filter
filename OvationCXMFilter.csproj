@@ -93,8 +93,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Constants\TraceMessage.cs" />
-    <Compile Include="Constants\Constant.cs" />
     <Compile Include="Webhook.cs" />
     <Compile Include="WebhookCopy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
