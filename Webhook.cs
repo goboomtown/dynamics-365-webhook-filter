@@ -19,18 +19,28 @@ namespace OvationCXMFilter.Plugins
     // this enum defines the entityNames 
     public enum EntityName
     {
-        account,
+        customer,
         contact,
-        incident
-
+        cases
     }
-
+    public static class EntityNamesDictionary
+    {
+        public static Dictionary<EntityName, string> name = new Dictionary<EntityName, string>
+            {
+                { EntityName.customer, "account" },
+                { EntityName.contact, "contact" },
+                { EntityName.cases, "incident" }
+            };
+    }
     // add the constants over here 
     public static class Constant
     {
         public static string[] entities = { "account", "contact", "incident" };
-        public static string webhookUrl = "https://webhook.site/4cafb5e7-e915-47f5-a01c-bcdf40962640";
-        public static string filterUrl = "https://connector-msdynamics-api-pwgavvro5q-uc.a.run.app/api/filter?orgId=PPK1";
+        /* 
+         * To test purpose replace this webhookUrl with https://webhook.site/ 
+         */
+        public static string webhookUrl = "https://connector-msdynamics-api-pwgavvro5q-uc.a.run.app/api/webhook/msdynamics?orgId={{orgId}}";
+
     }
 
     public static class TraceMessage
@@ -46,6 +56,7 @@ namespace OvationCXMFilter.Plugins
     {
         public void Execute(IServiceProvider serviceProvider)
         {
+
             ITracingService trace = (ITracingService)serviceProvider.GetService(typeof(ITracingService));
 
             // Obtain the execution context from the service provider.
@@ -75,43 +86,25 @@ namespace OvationCXMFilter.Plugins
                             if (context.UserId != null)
                             {
                                 // Checking if the logical name of the entity is equal to the third element to perform the certain steps
-                                if (entity.LogicalName == Constant.entities.ElementAt(2))
+                                if (CheckConditions(context, service, entity.LogicalName, requestName))
                                 {
-                                    Entity caseId = (Entity)context.InputParameters["Target"];
+                                    trace.Trace(TraceMessage.validPayload);
 
-                                    // Retrieving the customer id of the case using the case id
-                                    Entity record = service.Retrieve("incident", caseId.Id, new ColumnSet("customerid"));
+                                    // Trigger the webhook.
+                                    TriggerWebhook(context, requestName, trace);
 
-                                    CheckConditions(context, requestName, record);
-
-                                    if (CheckConditions(context, requestName, record))
-                                    {
-                                        trace.Trace(TraceMessage.validPayload);
-
-                                        // Trigger the webhook.
-                                        TriggerWebhook(context, requestName, trace);
-
-                                        trace.Trace(TraceMessage.webhookTriggered);
-                                    }
+                                    trace.Trace(TraceMessage.webhookTriggered);
                                 }
-                                else
-                                {
-                                    if (CheckConditions(context, requestName))
-                                    {
-                                        trace.Trace(TraceMessage.validPayload);
-
-                                        // Trigger the webhook.
-                                        TriggerWebhook(context, requestName, trace);
-
-                                        trace.Trace(TraceMessage.webhookTriggered);
-                                    }
-
-                                }
+                            }
+                            else
+                            {
+                                trace.Trace("User not found");
                             }
                         }
                     }
                     catch (FaultException<OrganizationServiceFault> ex)
                     {
+                        trace.Trace(TraceMessage.pluginFaultException, ex.ToString());
                         throw new InvalidPluginExecutionException(TraceMessage.pluginFaultException, ex);
                     }
                     catch (Exception ex)
@@ -123,19 +116,15 @@ namespace OvationCXMFilter.Plugins
             }
         }
 
-        private bool CheckConditions(IPluginExecutionContext context, string requestName, Entity caseRecord = null)
+        private bool CheckConditions(IPluginExecutionContext context, IOrganizationService service, string entityName, string requestName)
         {
-            
             try
             {
                 // ## You can add filter conditions over here sample is shown below
-
-                //Entity entity = (Entity)context.InputParameters["Target"];
-
                 //var model = PayloadTransform(context);
 
                 //// Checking if the entityName is account or not 
-                //if ((context.PrimaryEntityName == EntityName.account.ToString()))
+                //if (entityName == EntityNamesDictionary.name[EntityName.customer])
                 //{
                 //    // Checking if the account id from the model is equal to the given string or not
                 //    if (Convert.ToString(model["accountid"]) == "6f82d1a5-a8c5-ee11-9079-00224827244c")
@@ -148,43 +137,39 @@ namespace OvationCXMFilter.Plugins
                 //    }
                 //}
 
-                //// Checking if the entityName is incident or not 
-                //if (context.PrimaryEntityName == EntityName.incident.ToString())
+                //if (entityName == EntityNamesDictionary.name[EntityName.cases])
                 //{
-                //    // checking type of the request 
+                //    string accountId = String.Empty;
+                //    if (RequestName.update.ToString() == requestName)
+                //    {
+                //        Entity caseId = (Entity)context.InputParameters["Target"];
+
+                //        // Retrieving the customer id of the case using the case id
+                //        Entity caseRecord = service.Retrieve(entityName, caseId.Id, new ColumnSet("customerid"));
+
+                //        EntityReference customerRef = caseRecord.GetAttributeValue<EntityReference>("customerid");
+                //        accountId = customerRef.Id.ToString();
+                //    }
+
                 //    if (RequestName.create.ToString() == requestName)
                 //    {
                 //        // Extracting the customer ID from the provided model data.  
                 //        EntityReference customerId = (EntityReference)model["customerid"];
-                //        if (Convert.ToString(customerId.Id) == "6f82d1a5-a8c5-ee11-9079-00224827244c")
-                //        {
-                //            return true;
-                //        }
+                //        accountId = customerId.Id.ToString();
                 //    }
 
-                //    if (RequestName.update.ToString() == requestName)
+                //    if (accountId == "6f82d1a5-a8c5-ee11-9079-00224827244c")
                 //    {
-                //        // Retrieving the EntityReference of the customer associated with the Case record.
-                //        EntityReference customerRef = caseRecord.GetAttributeValue<EntityReference>("customerid");
-                //        if (Convert.ToString(customerRef.Id) == "6f82d1a5-a8c5-ee11-9079-00224827244c")
-                //        {
-                //            return true;
-                //        }
-                //        else
-                //        {
-                //            return false;
-                //        }
+                //        return true;
                 //    }
                 //    else
                 //    {
                 //        return false;
                 //    }
+
                 //}
-                //else
-                //{
-                //    return false;
-                //}
-                return true; 
+
+                return true;
             }
             catch (Exception ex)
             {
