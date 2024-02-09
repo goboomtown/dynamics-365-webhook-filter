@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -8,23 +9,38 @@ using System.ServiceModel;
 
 namespace OvationCXMFilter.Plugins
 {
+    // this enum is for types of request add the request types here
     public enum RequestName
     {
         create,
         update
     }
 
+    // this enum defines the entityNames 
     public enum EntityName
     {
-        account,
-        contact
+        customer,
+        contact,
+        cases
     }
-
+    public static class EntityNamesDictionary
+    {
+        public static Dictionary<EntityName, string> name = new Dictionary<EntityName, string>
+            {
+                { EntityName.customer, "account" },
+                { EntityName.contact, "contact" },
+                { EntityName.cases, "incident" }
+            };
+    }
+    // add the constants over here 
     public static class Constant
     {
-        public static string[] entities = { "account", "contact" };
-        public static string webhookUrl = "https://webhook.site/4cafb5e7-e915-47f5-a01c-bcdf40962640";
-        public static string filterUrl = "https://connector-msdynamics-api-pwgavvro5q-uc.a.run.app/api/filter?orgId=PPK1";
+        public static string[] entities = { "account", "contact", "incident" };
+        /* 
+         * To test purpose replace this webhookUrl with https://webhook.site/ 
+         */
+        public static string webhookUrl = "https://connector-msdynamics-api-pwgavvro5q-uc.a.run.app/api/webhook/msdynamics?orgId={{orgId}}";
+
     }
 
     public static class TraceMessage
@@ -40,10 +56,17 @@ namespace OvationCXMFilter.Plugins
     {
         public void Execute(IServiceProvider serviceProvider)
         {
+
             ITracingService trace = (ITracingService)serviceProvider.GetService(typeof(ITracingService));
+
             // Obtain the execution context from the service provider.
             IPluginExecutionContext context = (IPluginExecutionContext)serviceProvider.GetService(typeof(IPluginExecutionContext));
-            
+
+            // Retrieve the service factory responsible for creating instances of IOrganizationService.
+            IOrganizationServiceFactory serviceFactory = (IOrganizationServiceFactory)serviceProvider.GetService(typeof(IOrganizationServiceFactory));
+
+            // Create an instance of IOrganizationService using the retrieved service factory and the user context.
+            IOrganizationService service = serviceFactory.CreateOrganizationService(context.UserId);
 
             // Check if the plugin is executing in the post-operation stage of the "Create" or "Update" message.
             string requestName = context.MessageName.ToLower();
@@ -60,18 +83,28 @@ namespace OvationCXMFilter.Plugins
                         if (Constant.entities.Contains(entity.LogicalName))
                         {
                             trace.Trace(TraceMessage.validationStart);
-                            // Check the conditions before triggering the webhook.
-                            if (context.UserId != null && CheckConditions(context, requestName))
+                            if (context.UserId != null)
                             {
-                                trace.Trace(TraceMessage.validPayload);
-                                // Trigger the webhook.
-                                TriggerWebhook(context, requestName);
-                                trace.Trace(TraceMessage.webhookTriggered);
+                                // Checking if the logical name of the entity is equal to the third element to perform the certain steps
+                                if (CheckConditions(context, service, entity.LogicalName, requestName))
+                                {
+                                    trace.Trace(TraceMessage.validPayload);
+
+                                    // Trigger the webhook.
+                                    TriggerWebhook(context, requestName, trace);
+
+                                    trace.Trace(TraceMessage.webhookTriggered);
+                                }
+                            }
+                            else
+                            {
+                                trace.Trace("User not found");
                             }
                         }
                     }
                     catch (FaultException<OrganizationServiceFault> ex)
                     {
+                        trace.Trace(TraceMessage.pluginFaultException, ex.ToString());
                         throw new InvalidPluginExecutionException(TraceMessage.pluginFaultException, ex);
                     }
                     catch (Exception ex)
@@ -83,44 +116,69 @@ namespace OvationCXMFilter.Plugins
             }
         }
 
-        private bool CheckConditions(IPluginExecutionContext context, string requestName)
+        private bool CheckConditions(IPluginExecutionContext context, IOrganizationService service, string entityName, string requestName)
         {
             try
             {
-                try
-                {
-                    Entity entity = (Entity)context.InputParameters["Target"];
-                    var model = PayloadTransform(context);
-                    if (context.PrimaryEntityName == EntityName.account.ToString())
-                    {
-                        if (Convert.ToString(model["name"]) == "KeyBank")
-                        {
-                            return true;
-                        }
-                        else
-                        {
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        return true;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception(ex.Message);
-                }
+                // ## You can add filter conditions over here sample is shown below
+                //var model = PayloadTransform(context);
+
+                //// Checking if the entityName is account or not 
+                //if (entityName == EntityNamesDictionary.name[EntityName.customer])
+                //{
+                //    // Checking if the account id from the model is equal to the given string or not
+                //    if (Convert.ToString(model["accountid"]) == "6f82d1a5-a8c5-ee11-9079-00224827244c")
+                //    {
+                //        return true;
+                //    }
+                //    else
+                //    {
+                //        return false;
+                //    }
+                //}
+
+                //if (entityName == EntityNamesDictionary.name[EntityName.cases])
+                //{
+                //    string accountId = String.Empty;
+                //    if (RequestName.update.ToString() == requestName)
+                //    {
+                //        Entity caseId = (Entity)context.InputParameters["Target"];
+
+                //        // Retrieving the customer id of the case using the case id
+                //        Entity caseRecord = service.Retrieve(entityName, caseId.Id, new ColumnSet("customerid"));
+
+                //        EntityReference customerRef = caseRecord.GetAttributeValue<EntityReference>("customerid");
+                //        accountId = customerRef.Id.ToString();
+                //    }
+
+                //    if (RequestName.create.ToString() == requestName)
+                //    {
+                //        // Extracting the customer ID from the provided model data.  
+                //        EntityReference customerId = (EntityReference)model["customerid"];
+                //        accountId = customerId.Id.ToString();
+                //    }
+
+                //    if (accountId == "6f82d1a5-a8c5-ee11-9079-00224827244c")
+                //    {
+                //        return true;
+                //    }
+                //    else
+                //    {
+                //        return false;
+                //    }
+
+                //}
+
+                return true;
             }
             catch (Exception ex)
             {
                 // Handle exceptions.
                 throw new InvalidPluginExecutionException($"Error triggering webhook: {ex.Message}", ex);
             }
-
         }
 
-        private void TriggerWebhook(IPluginExecutionContext context, string requestName)
+        private void TriggerWebhook(IPluginExecutionContext context, string requestName, ITracingService trace)
         {
             try
             {
@@ -146,7 +204,7 @@ namespace OvationCXMFilter.Plugins
                     // Check the response if needed.
                     if (response.IsSuccessStatusCode)
                     {
-                        // Handle success.
+                        trace.Trace(response.Content.ToString());
                     }
                     else
                     {
@@ -164,28 +222,21 @@ namespace OvationCXMFilter.Plugins
 
         private Dictionary<string, object> PayloadTransform(IPluginExecutionContext model)
         {
-
             var payload = new Dictionary<string, object>();
-            var data = model.InputParameters.Values;
-           
-                foreach(Entity item in data)
-                {
-                    foreach(var element in item.Attributes.Values.Select((value, i) => new { i, value }))
-                    {
-                        var actualValue = element.i != null ? element.value : "";
-                        payload[item.Attributes.Keys.ElementAt(element.i)] = element.value is object ? element.value : "";
-                    }
-                   
-                    //element.value = element[item] != null ? element.value : "";
-                    //payload[element.key] = element.value is object
-                    //    ? element.value.id != null
-                    //        ? element.value.id
-                    //        : element.value.value
-                    //    : element.value;
-                
 
+            // Retrieving the first entity object from the input parameters of the model,
+            // assuming the model is holding a collection of entities.
+            Entity data = (Entity)model.InputParameters.Values.FirstOrDefault();
+
+            if (data != null)
+            {
+                foreach (var element in data.Attributes.Values.Select((value, i) => new { i, value }))
+                {
+                    var actualValue = element.i != null ? element.value : "";
+                    payload[data.Attributes.Keys.ElementAt(element.i)] = element.value is object ? element.value : "";
                 }
-            
+            }
+
             return payload;
         }
 
