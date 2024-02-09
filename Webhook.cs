@@ -9,40 +9,43 @@ using System.ServiceModel;
 
 namespace OvationCXMFilter.Plugins
 {
-    // this enum is for types of request add the request types here
+
+    /// <summary>
+    /// Declare entity name enum
+    /// </summary>
+    public class EntityModel
+    {
+        public string Customer { get; set; }
+        public string Contact { get; set; }
+        public string Case { get; set; }
+    }
+
+    /// <summary>
+    /// Declare entity event enum
+    /// </summary>
     public enum RequestName
     {
         create,
         update
     }
 
-    // this enum defines the entityNames 
-    public enum EntityName
-    {
-        customer,
-        contact,
-        cases
-    }
-    public static class EntityNamesDictionary
-    {
-        public static Dictionary<EntityName, string> name = new Dictionary<EntityName, string>
-            {
-                { EntityName.customer, "account" },
-                { EntityName.contact, "contact" },
-                { EntityName.cases, "incident" }
-            };
-    }
-    // add the constants over here 
+    /// <summary>
+    /// Declare required constants
+    /// </summary>
     public static class Constant
     {
-        public static string[] entities = { "account", "contact", "incident" };
+        public static EntityModel entities = new EntityModel { Customer = "account", Contact = "contact", Case = "incident" };
+
         /* 
-         * To test purpose replace this webhookUrl with https://webhook.site/ 
+         * To test purpose replace this webhookUrl with test url as https://webhook.site/ 
+         * Replace {{orgId}} with actual orgId before deploy on production
          */
         public static string webhookUrl = "https://connector-msdynamics-api-pwgavvro5q-uc.a.run.app/api/webhook/msdynamics?orgId={{orgId}}";
-
     }
 
+    /// <summary>
+    /// Error messages for ITracingService service
+    /// </summary>
     public static class TraceMessage
     {
         public static string validationStart = "Validating filter conditions...";
@@ -54,6 +57,11 @@ namespace OvationCXMFilter.Plugins
 
     public class Webhook : IPlugin
     {
+        /// <summary>
+        /// Execute the plugin on the basic on entity event
+        /// </summary>
+        /// <param name="serviceProvider"></param>
+        /// <exception cref="InvalidPluginExecutionException"></exception>
         public void Execute(IServiceProvider serviceProvider)
         {
 
@@ -79,19 +87,21 @@ namespace OvationCXMFilter.Plugins
                     Entity entity = (Entity)context.InputParameters["Target"];
                     try
                     {
+                        string[] crmEntities = { Constant.entities.Customer, Constant.entities.Contact, Constant.entities.Case };
+
                         // Check if the entity is of the desired type (replace "contact" with your actual entity logical name).
-                        if (Constant.entities.Contains(entity.LogicalName))
+                        if (crmEntities.Contains(entity.LogicalName))
                         {
                             trace.Trace(TraceMessage.validationStart);
                             if (context.UserId != null)
                             {
                                 // Checking if the logical name of the entity is equal to the third element to perform the certain steps
-                                if (CheckConditions(context, service, entity.LogicalName, requestName))
+                                if (CheckConditions(context, service))
                                 {
                                     trace.Trace(TraceMessage.validPayload);
 
                                     // Trigger the webhook.
-                                    TriggerWebhook(context, requestName, trace);
+                                    TriggerWebhook(context, trace);
 
                                     trace.Trace(TraceMessage.webhookTriggered);
                                 }
@@ -116,28 +126,26 @@ namespace OvationCXMFilter.Plugins
             }
         }
 
-        private bool CheckConditions(IPluginExecutionContext context, IOrganizationService service, string entityName, string requestName)
+        /// <summary>
+        /// Implement filteration logic to trigger webhook
+        /// </summary>
+        /// <param name="context">Execution context from the service provider.</param>
+        /// <param name="service">Instance of IOrganizationService</param>
+        /// <returns>Return true/false based on filter conditions</returns>
+        /// <exception cref="InvalidPluginExecutionException">Throw exception on filter conditions failure</exception>
+        public bool CheckConditions(IPluginExecutionContext context, IOrganizationService service)
         {
             try
             {
+
                 // ## You can add filter conditions over here sample is shown below
+
+                //string requestName = context.MessageName.ToLower();
+                //Entity entity = (Entity)context.InputParameters["Target"];
+                //string entityName = entity.LogicalName;
                 //var model = PayloadTransform(context);
 
-                //// Checking if the entityName is account or not 
-                //if (entityName == EntityNamesDictionary.name[EntityName.customer])
-                //{
-                //    // Checking if the account id from the model is equal to the given string or not
-                //    if (Convert.ToString(model["accountid"]) == "6f82d1a5-a8c5-ee11-9079-00224827244c")
-                //    {
-                //        return true;
-                //    }
-                //    else
-                //    {
-                //        return false;
-                //    }
-                //}
-
-                //if (entityName == EntityNamesDictionary.name[EntityName.cases])
+                //if (entityName == Constant.entities.Case)
                 //{
                 //    string accountId = String.Empty;
                 //    if (RequestName.update.ToString() == requestName)
@@ -162,26 +170,28 @@ namespace OvationCXMFilter.Plugins
                 //    {
                 //        return true;
                 //    }
-                //    else
-                //    {
-                //        return false;
-                //    }
-
                 //}
 
-                return true;
+                return false;
             }
             catch (Exception ex)
             {
                 // Handle exceptions.
-                throw new InvalidPluginExecutionException($"Error triggering webhook: {ex.Message}", ex);
+                throw new InvalidPluginExecutionException($"Filter error: {ex.Message}", ex);
             }
         }
 
-        private void TriggerWebhook(IPluginExecutionContext context, string requestName, ITracingService trace)
+        /// <summary>
+        /// Trigger a OvationCXM webhook 
+        /// </summary>
+        /// <param name="context">Execution context from the service provider.</param>
+        /// <param name="trace">ITracingService object</param>
+        /// <exception cref="InvalidPluginExecutionException">Throw exception on webhook trigger failure</exception>
+        private void TriggerWebhook(IPluginExecutionContext context, ITracingService trace)
         {
             try
             {
+                string requestName = context.MessageName.ToLower();
                 Entity entity = (Entity)context.InputParameters["Target"];
                 using (HttpClient client = new HttpClient())
                 {
@@ -220,6 +230,11 @@ namespace OvationCXMFilter.Plugins
             }
         }
 
+        /// <summary>
+        /// Convert IPluginExecutionContext to readable object
+        /// </summary>
+        /// <param name="model">IPluginExecutionContext object</param>
+        /// <returns>Returns the entity object</returns>
         private Dictionary<string, object> PayloadTransform(IPluginExecutionContext model)
         {
             var payload = new Dictionary<string, object>();
@@ -227,7 +242,6 @@ namespace OvationCXMFilter.Plugins
             // Retrieving the first entity object from the input parameters of the model,
             // assuming the model is holding a collection of entities.
             Entity data = (Entity)model.InputParameters.Values.FirstOrDefault();
-
             if (data != null)
             {
                 foreach (var element in data.Attributes.Values.Select((value, i) => new { i, value }))
