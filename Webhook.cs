@@ -9,20 +9,28 @@ using System.ServiceModel;
 
 namespace OvationCXMFilter.Plugins
 {
-    // this enum is for types of request add the request types here
+    /// <summary>
+    /// Declare entity event enum
+    /// </summary>
     public enum RequestName
     {
         create,
         update
     }
 
-    // this enum defines the entityNames 
+    /// <summary>
+    /// Declare entity name enum
+    /// </summary>
     public enum EntityName
     {
-        customer,
-        contact,
-        cases
+        customer = account,
+        contact = contact,
+        cases = incident
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
     public static class EntityNamesDictionary
     {
         public static Dictionary<EntityName, string> name = new Dictionary<EntityName, string>
@@ -32,17 +40,26 @@ namespace OvationCXMFilter.Plugins
                 { EntityName.cases, "incident" }
             };
     }
-    // add the constants over here 
+    
+    /// <summary>
+    /// Declare required constants
+    /// </summary>
     public static class Constant
     {
+        //var myEnumList = Enum.GetValues(typeof(EntityName)).Cast<EntityName>().ToList();
+
         public static string[] entities = { "account", "contact", "incident" };
         /* 
-         * To test purpose replace this webhookUrl with https://webhook.site/ 
+         * To test purpose replace this webhookUrl with test url as https://webhook.site/ 
+         * Replace {{orgId}} with actual orgId before deploy on production
          */
         public static string webhookUrl = "https://connector-msdynamics-api-pwgavvro5q-uc.a.run.app/api/webhook/msdynamics?orgId={{orgId}}";
 
     }
 
+    /// <summary>
+    /// Error messages for ITracingService service
+    /// </summary>
     public static class TraceMessage
     {
         public static string validationStart = "Validating filter conditions...";
@@ -54,9 +71,13 @@ namespace OvationCXMFilter.Plugins
 
     public class Webhook : IPlugin
     {
+        /// <summary>
+        /// Execute the plugin on the basic on entity event
+        /// </summary>
+        /// <param name="serviceProvider"></param>
+        /// <exception cref="InvalidPluginExecutionException"></exception>
         public void Execute(IServiceProvider serviceProvider)
         {
-
             ITracingService trace = (ITracingService)serviceProvider.GetService(typeof(ITracingService));
 
             // Obtain the execution context from the service provider.
@@ -69,7 +90,6 @@ namespace OvationCXMFilter.Plugins
             IOrganizationService service = serviceFactory.CreateOrganizationService(context.UserId);
 
             // Check if the plugin is executing in the post-operation stage of the "Create" or "Update" message.
-            string requestName = context.MessageName.ToLower();
             if ((requestName.Equals(RequestName.create.ToString()) || requestName.Equals(RequestName.update.ToString())) && context.Stage == 40) // Post-operation stage
             {
                 // Ensure the target entity is present in the context.
@@ -86,12 +106,12 @@ namespace OvationCXMFilter.Plugins
                             if (context.UserId != null)
                             {
                                 // Checking if the logical name of the entity is equal to the third element to perform the certain steps
-                                if (CheckConditions(context, service, entity.LogicalName, requestName))
+                                if (CheckConditions(context, service, entity.LogicalName))
                                 {
                                     trace.Trace(TraceMessage.validPayload);
 
                                     // Trigger the webhook.
-                                    TriggerWebhook(context, requestName, trace);
+                                    TriggerWebhook(context, trace);
 
                                     trace.Trace(TraceMessage.webhookTriggered);
                                 }
@@ -116,10 +136,20 @@ namespace OvationCXMFilter.Plugins
             }
         }
 
-        private bool CheckConditions(IPluginExecutionContext context, IOrganizationService service, string entityName, string requestName)
+        /// <summary>
+        /// Implement filteration logic to trigger webhook
+        /// </summary>
+        /// <param name="context">Execution context from the service provider.</param>
+        /// <param name="service">Instance of IOrganizationService</param>
+        /// <returns>Return true/false based on filter conditions</returns>
+        /// <exception cref="InvalidPluginExecutionException">Throw exception on filter conditions failure</exception>
+        private bool CheckConditions(IPluginExecutionContext context, IOrganizationService service)
         {
             try
             {
+                string requestName = context.MessageName.ToLower();
+                Entity entity = (Entity)context.InputParameters["Target"];
+                string entityName = entity.LogicalName;
                 // ## You can add filter conditions over here sample is shown below
                 //var model = PayloadTransform(context);
 
@@ -174,14 +204,21 @@ namespace OvationCXMFilter.Plugins
             catch (Exception ex)
             {
                 // Handle exceptions.
-                throw new InvalidPluginExecutionException($"Error triggering webhook: {ex.Message}", ex);
+                throw new InvalidPluginExecutionException($"Filter error: {ex.Message}", ex);
             }
         }
 
-        private void TriggerWebhook(IPluginExecutionContext context, string requestName, ITracingService trace)
+        /// <summary>
+        /// Trigger a OvationCXM webhook 
+        /// </summary>
+        /// <param name="context">Execution context from the service provider.</param>
+        /// <param name="trace">ITracingService object</param>
+        /// <exception cref="InvalidPluginExecutionException">Throw exception on webhook trigger failure</exception>
+        private void TriggerWebhook(IPluginExecutionContext context, ITracingService trace)
         {
             try
             {
+                string requestName = context.MessageName.ToLower();
                 Entity entity = (Entity)context.InputParameters["Target"];
                 using (HttpClient client = new HttpClient())
                 {
@@ -220,6 +257,11 @@ namespace OvationCXMFilter.Plugins
             }
         }
 
+        /// <summary>
+        /// Convert IPluginExecutionContext to readable object
+        /// </summary>
+        /// <param name="model">IPluginExecutionContext object</param>
+        /// <returns>Returns the entity object</returns>
         private Dictionary<string, object> PayloadTransform(IPluginExecutionContext model)
         {
             var payload = new Dictionary<string, object>();
@@ -227,7 +269,6 @@ namespace OvationCXMFilter.Plugins
             // Retrieving the first entity object from the input parameters of the model,
             // assuming the model is holding a collection of entities.
             Entity data = (Entity)model.InputParameters.Values.FirstOrDefault();
-
             if (data != null)
             {
                 foreach (var element in data.Attributes.Values.Select((value, i) => new { i, value }))
