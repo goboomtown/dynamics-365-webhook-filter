@@ -1,8 +1,8 @@
 ﻿using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 using OvationCXMFilter.Constants;
-using OvationCXMFilter.Enums;
-using OvationCXMFilter.Helpers;
+using OvationCXMFilterService.Enums;
+using OvationCXMFilterService.Helpers;
 using System;
 
 namespace OvationCXMFilter

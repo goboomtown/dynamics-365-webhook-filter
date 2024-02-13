@@ -5,6 +5,8 @@ VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OvationCXMFilter", "OvationCXMFilter.csproj", "{EB94667D-8BD5-4449-866C-652FB80790FB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OvationCXMFilterService", "OvationCXMFilterService\OvationCXMFilterService.csproj", "{6E299D90-A3DA-440C-9880-2663E6F66FCE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{EB94667D-8BD5-4449-866C-652FB80790FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB94667D-8BD5-4449-866C-652FB80790FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB94667D-8BD5-4449-866C-652FB80790FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E299D90-A3DA-440C-9880-2663E6F66FCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E299D90-A3DA-440C-9880-2663E6F66FCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E299D90-A3DA-440C-9880-2663E6F66FCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E299D90-A3DA-440C-9880-2663E6F66FCE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

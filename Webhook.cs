@@ -5,7 +5,9 @@ using System.Linq;
 using System.Net.Http;
 using System.ServiceModel;
 using OvationCXMFilter.Constants;
-using OvationCXMFilter.Enums;
+using OvationCXMFilterService.Constants;
+using OvationCXMFilterService.Enums;
+using OvationCXMFilterService.Helpers;
 
 namespace OvationCXMFilter.Plugins
 {
@@ -30,6 +32,9 @@ namespace OvationCXMFilter.Plugins
             // Create an instance of IOrganizationService using the retrieved service factory and the user context.
             IOrganizationService service = serviceFactory.CreateOrganizationService(context.UserId);
 
+            var triggerWebhookInstance = new TriggerWebhook();
+            var filterInstance = new OvationCXMFilter.FilterHelper();
+
             // Check if the plugin is executing in the post-operation stage of the "Create" or "Update" message.
             string requestName = context.MessageName.ToLower();
             if ((requestName.Equals(EventType.RequestName.create.ToString()) || requestName.Equals(EventType.RequestName.update.ToString())) && context.Stage == 40) // Post-operation stage
@@ -50,12 +55,12 @@ namespace OvationCXMFilter.Plugins
                             if (context.UserId != null)
                             {
                                 // Checking if the logical name of the entity is equal to the third element to perform the certain steps
-                                if (CheckConditions(context, service))
+                                if (filterInstance.IsValid(context, service))
                                 {
                                     trace.Trace(TraceMessage.validPayload);
 
                                     // Trigger the webhook.
-                                    TriggerWebhook(context, trace);
+                                    triggerWebhookInstance.ExecuteWebhook(context, trace,Constant.webhookUrl);
 
                                     trace.Trace(TraceMessage.webhookTriggered);
                                 }
@@ -80,59 +85,5 @@ namespace OvationCXMFilter.Plugins
             }
         }
 
-        public bool CheckConditions(IPluginExecutionContext context, IOrganizationService service)
-        {
-            var filterInstance = new OvationCXMFilter.FilterHelper();
-            return filterInstance.IsValid(context, service);
-        }
-
-        /// <summary>
-        /// Trigger a OvationCXM webhook 
-        /// </summary>
-        /// <param name="context">Execution context from the service provider.</param>
-        /// <param name="trace">ITracingService object</param>
-        /// <exception cref="InvalidPluginExecutionException">Throw exception on webhook trigger failure</exception>
-        private void TriggerWebhook(IPluginExecutionContext context, ITracingService trace)
-        {
-            try
-            {
-                string requestName = context.MessageName.ToLower();
-                Entity entity = (Entity)context.InputParameters["Target"];
-                using (HttpClient client = new HttpClient())
-                {
-                    var guid = Guid.NewGuid().ToString();
-                    // Add headers if necessary.
-                    client.DefaultRequestHeaders.Add("x-ms-correlation-request-id", guid);
-                    client.DefaultRequestHeaders.Add("x-ms-dynamics-request-name", requestName);
-                    client.DefaultRequestHeaders.Add("x-ms-dynamics-entity-name", entity.LogicalName);
-                    client.DefaultRequestHeaders.Add("x-ovationcxm-request-id", guid);
-
-                    // You can customize the request (headers, payload, etc.) based on your webhook requirements.
-                    var payload = JsonConvert.SerializeObject(context);
-
-                    // You can customize the request (headers, payload, etc.) based on your webhook requirements.
-                    StringContent content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
-
-                    // Send the POST request to the webhook endpoint.
-                    HttpResponseMessage response = client.PostAsync(Constant.webhookUrl, content).Result;
-
-                    // Check the response if needed.
-                    if (response.IsSuccessStatusCode)
-                    {
-                        trace.Trace(response.Content.ToString());
-                    }
-                    else
-                    {
-                        // Handle failure.
-                        throw new Exception($"Webhook request failed. Status code: {response.StatusCode}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Handle exceptions.
-                throw new InvalidPluginExecutionException($"Error triggering webhook: {ex.Message}", ex);
-            }
-        }
     }
 }

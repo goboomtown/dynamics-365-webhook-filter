@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OvationCXMFilter.Helpers
+namespace OvationCXMFilterService.Helpers
 {
     /// <summary>
     /// Convert IPluginExecutionContext to readable object

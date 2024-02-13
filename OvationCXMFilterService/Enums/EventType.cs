@@ -1,9 +1,6 @@
 ﻿
-namespace OvationCXMFilter.Enums
+namespace OvationCXMFilterService.Enums
 {
-    /// <summary>
-    /// Declare entity name enum
-    /// </summary>
     public class EventType
     {
         public enum RequestName

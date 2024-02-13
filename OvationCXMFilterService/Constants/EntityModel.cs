@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace OvationCXMFilter.Constants
+﻿
+namespace OvationCXMFilterService.Constants
 {
+    /// <summary>
+    /// Declare entity name enum
+    /// </summary>
+
     public class EntityModel
     {
         public string Customer { get; set; }
