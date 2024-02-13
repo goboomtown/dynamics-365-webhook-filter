@@ -111,7 +111,7 @@ After creating the step, you can test the plugin by performing the actions that 
 
 ## How to add the filter or modify the existing filters:-
 
-path:- **dynamics-365-webhook-filter/Helpers/FilterHelper.cs**
+path:- **dynamics-365-webhook-filter/OvationCXMFilter/Helpers/FilterHelper.cs**
 ```
 public bool IsValid(IPluginExecutionContext context, IOrganizationService service)
 {
@@ -162,7 +162,7 @@ public bool IsValid(IPluginExecutionContext context, IOrganizationService servic
 The above code snippet explains about the filter conditions and based on these conditions the webhook will be triggered. 
 To add the new filters or modify the existing filters then you modify it in this **FilterHelper.cs** file.
 
-path:- **dynamics-365-webhook-filter/Constants/Contant.cs**
+path:- **dynamics-365-webhook-filter/OvationCXMFilter/Constants/Contant.cs**
 ```
 using OvationCXMFilterService.Constants;
 
