@@ -203,7 +203,7 @@ namespace OvationCXMFilter.Plugins
                     client.DefaultRequestHeaders.Add("x-ovationcxm-request-id", guid);
 
                     // You can customize the request (headers, payload, etc.) based on your webhook requirements.
-                    var payload = JsonConvert.SerializeObject(context);
+                    var payload = JsonConvert.SerializeObject(entity);
 
                     // You can customize the request (headers, payload, etc.) based on your webhook requirements.
                     StringContent content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
