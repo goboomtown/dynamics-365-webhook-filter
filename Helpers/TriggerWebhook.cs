@@ -1,7 +1,7 @@
 ﻿using Microsoft.Xrm.Sdk;
-using Newtonsoft.Json;
 using System;
 using System.Net.Http;
+
 
 namespace OvationCXMFilter.Helpers
 {
@@ -15,10 +15,13 @@ namespace OvationCXMFilter.Helpers
     {
         public void Webhook(IPluginExecutionContext context, ITracingService trace, string webhookURL)
         {
+
             try
             {
                 string requestName = context.MessageName.ToLower();
                 Entity entity = (Entity)context.InputParameters["Target"];
+                object contextCopy = context;
+
                 using (HttpClient client = new HttpClient())
                 {
                     var guid = Guid.NewGuid().ToString();
@@ -28,11 +31,11 @@ namespace OvationCXMFilter.Helpers
                     client.DefaultRequestHeaders.Add("x-ms-dynamics-entity-name", entity.LogicalName);
                     client.DefaultRequestHeaders.Add("x-ovationcxm-request-id", guid);
 
-                    // You can customize the request (headers, payload, etc.) based on your webhook requirements.
-                    var payload = JsonConvert.SerializeObject(context);
+                    // Serialize contextCopy to JSON
+                    var jsonPayload = System.Text.Json.JsonSerializer.Serialize(contextCopy);
 
                     // You can customize the request (headers, payload, etc.) based on your webhook requirements.
-                    StringContent content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+                    StringContent content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
 
                     // Send the POST request to the webhook endpoint.
                     HttpResponseMessage response = client.PostAsync(webhookURL, content).Result;

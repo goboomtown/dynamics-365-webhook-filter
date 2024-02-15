@@ -45,11 +45,11 @@ namespace OvationCXMFilter.Helpers
                         Entity caseRecord = service.Retrieve(entityName, caseId.Id, new ColumnSet("customerid")); // In update event, account id will not be a part of context so we need to fetch customerid
 
                         EntityReference customerRef = caseRecord.GetAttributeValue<EntityReference>("customerid");
-                        accountId = customerRef.Id.ToString(); 
+                        accountId = customerRef.Id.ToString();
                     }
 
                     // Static account id should be replaced as per uses
-                    if (accountId == "6f82d1a5-a8c5-ee11-9079-00224827244c")
+                    if (accountId == "2c762a57-ddcb-ee11-9079-00224827244c")
                     {
                         return true;
                     }
