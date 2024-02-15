@@ -25,37 +25,37 @@ namespace OvationCXMFilter.Helpers
                 var model = PayloadHelper.PayloadTransform(context);
 
                 // Sample Filter conditions added for case entity to filter data for a specific account
-                if (entityName == Constant.entities.Case)
-                {
-                    string accountId = String.Empty;
-                    // Case create envent, whole payload will be get in context to filter
-                    if (EventType.RequestName.create.ToString() == requestName)
-                    {
-                        // Extracting the customer ID from the provided model data.  
-                        EntityReference customerId = (EntityReference)model["customerid"]; // In create event account id will be get an customerid in context
-                        accountId = customerId.Id.ToString();
-                    }
+                //if (entityName == Constant.entities.Case)
+                //{
+                //    string accountId = String.Empty;
+                //    // Case create envent, whole payload will be get in context to filter
+                //    if (EventType.RequestName.create.ToString() == requestName)
+                //    {
+                //        // Extracting the customer ID from the provided model data.  
+                //        EntityReference customerId = (EntityReference)model["customerid"]; // In create event account id will be get an customerid in context
+                //        accountId = customerId.Id.ToString();
+                //    }
 
-                    // Case update envent, only updated filters will be get in context to filter
-                    if (EventType.RequestName.update.ToString() == requestName)
-                    {
-                        Entity caseId = (Entity)context.InputParameters["Target"];
+                //    // Case update envent, only updated filters will be get in context to filter
+                //    if (EventType.RequestName.update.ToString() == requestName)
+                //    {
+                //        Entity caseId = (Entity)context.InputParameters["Target"];
 
-                        // Retrieving the customer id of the case using the case id
-                        Entity caseRecord = service.Retrieve(entityName, caseId.Id, new ColumnSet("customerid")); // In update event, account id will not be a part of context so we need to fetch customerid
+                //        // Retrieving the customer id of the case using the case id
+                //        Entity caseRecord = service.Retrieve(entityName, caseId.Id, new ColumnSet("customerid")); // In update event, account id will not be a part of context so we need to fetch customerid
 
-                        EntityReference customerRef = caseRecord.GetAttributeValue<EntityReference>("customerid");
-                        accountId = customerRef.Id.ToString();
-                    }
+                //        EntityReference customerRef = caseRecord.GetAttributeValue<EntityReference>("customerid");
+                //        accountId = customerRef.Id.ToString();
+                //    }
 
-                    // Static account id should be replaced as per uses
-                    if (accountId == "2c762a57-ddcb-ee11-9079-00224827244c")
-                    {
-                        return true;
-                    }
-                }
+                //    // Static account id should be replaced as per uses
+                //    if (accountId == "2c762a57-ddcb-ee11-9079-00224827244c")
+                //    {
+                //        return true;
+                //    }
+                //}
 
-                return false;
+                return true;
             }
             catch (Exception ex)
             {
