@@ -1,5 +1,4 @@
-﻿
-namespace OvationCXMFilter.Models
+﻿namespace OvationCXMFilter.Models
 {
     /// <summary>
     /// Declare entity model properties
@@ -9,6 +8,7 @@ namespace OvationCXMFilter.Models
         public string Customer { get; set; }
         public string Contact { get; set; }
         public string Case { get; set; }
+        public string CaseLog { get; set; }
 
     }
 }

@@ -16,7 +16,7 @@ namespace OvationCXMFilter.Plugins
         /// </summary>
         public static class Constant
         {
-            public static EntityModel entities = new EntityModel { Customer = "account", Contact = "contact", Case = "incident" };
+            public static EntityModel entities = new EntityModel { Customer = "account", Contact = "contact", Case = "incident", CaseLog = "annotation" };
             /* 
              * Replace {{instanceId}} with actual Instance Id before deploy on production
              */
